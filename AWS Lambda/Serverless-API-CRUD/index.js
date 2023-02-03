@@ -2,8 +2,8 @@ const AWS = require('aws-sdk');
 AWS.config.update( {
   region: 'ap-southeast-1'
 });
-const dynamodb = new AWS.DynamoDB.DocumentClient();
-const dynamodbTableName = '[table-name]';
+const dynamoDb = new AWS.DynamoDB.DocumentClient();
+const dynamoDbTableName = 'productTable-1';
 const healthPath = '/health';
 const productPath = '/product';
 const productsPath = '/products';
@@ -26,7 +26,7 @@ exports.handler = async function(event) {
       break;
     case event.httpMethod === 'PATCH' && event.path === productPath:
       const requestBody = JSON.parse(event.body);
-      response = await modifyProduct(requestBody.productId, requestBody.updateKey, requestBody.updateValue);
+      response = await updateProduct(requestBody.productId, requestBody.updateKey, requestBody.updateValue);
       break;
     case event.httpMethod === 'DELETE' && event.path === productPath:
       response = await deleteProduct(JSON.parse(event.body).productId);
@@ -39,49 +39,49 @@ exports.handler = async function(event) {
 
 async function getProduct(productId) {
   const params = {
-    TableName: dynamodbTableName,
+    TableName: dynamoDbTableName,
     Key: {
       'productId': productId
     }
   }
-  return await dynamodb.get(params).promise().then((response) => {
+  return await dynamoDb.get(params).promise().then((response) => {
     return buildResponse(200, response.Item);
   }, (error) => {
-    console.error('Do your custom error handling here. I am just gonna log it: ', error);
+    console.error('DynamoDb (GET) Error: ', error);
   });
 }
 
 async function getProducts() {
   const params = {
-    TableName: dynamodbTableName
+    TableName: dynamoDbTableName
   }
-  const allProducts = await scanDynamoRecords(params, []);
+  const allProducts = await scanDynamoDbRecords(params, []);
   const body = {
     products: allProducts
   }
   return buildResponse(200, body);
 }
 
-async function scanDynamoRecords(scanParams, itemArray) {
+async function scanDynamoDbRecords(scanParams, itemArray) {
   try {
-    const dynamoData = await dynamodb.scan(scanParams).promise();
-    itemArray = itemArray.concat(dynamoData.Items);
-    if (dynamoData.LastEvaluatedKey) {
-      scanParams.ExclusiveStartkey = dynamoData.LastEvaluatedKey;
-      return await scanDynamoRecords(scanParams, itemArray);
+    const dynamoDbData = await dynamoDb.scan(scanParams).promise();
+    itemArray = itemArray.concat(dynamoDbData.Items);
+    if (dynamoDbData.LastEvaluatedKey) {
+      scanParams.ExclusiveStartkey = dynamoDbData.LastEvaluatedKey;
+      return await scanDynamoDbRecords(scanParams, itemArray);
     }
     return itemArray;
   } catch(error) {
-    console.error('Do your custom error handling here. I am just gonna log it: ', error);
+    console.error('Scan DynamoDb Records Error: ', error);
   }
 }
 
 async function saveProduct(requestBody) {
   const params = {
-    TableName: dynamodbTableName,
+    TableName: dynamoDbTableName,
     Item: requestBody
   }
-  return await dynamodb.put(params).promise().then(() => {
+  return await dynamoDb.put(params).promise().then(() => {
     const body = {
       Operation: 'SAVE',
       Message: 'SUCCESS',
@@ -89,13 +89,13 @@ async function saveProduct(requestBody) {
     }
     return buildResponse(200, body);
   }, (error) => {
-    console.error('Do your custom error handling here. I am just gonna log it: ', error);
+    console.error('Save to DynamoDb Error: ', error);
   })
 }
 
-async function modifyProduct(productId, updateKey, updateValue) {
+async function updateProduct(productId, updateKey, updateValue) {
   const params = {
-    TableName: dynamodbTableName,
+    TableName: dynamoDbTableName,
     Key: {
       'productId': productId
     },
@@ -105,7 +105,7 @@ async function modifyProduct(productId, updateKey, updateValue) {
     },
     ReturnValues: 'UPDATED_NEW'
   }
-  return await dynamodb.update(params).promise().then((response) => {
+  return await dynamoDb.update(params).promise().then((response) => {
     const body = {
       Operation: 'UPDATE',
       Message: 'SUCCESS',
@@ -113,19 +113,19 @@ async function modifyProduct(productId, updateKey, updateValue) {
     }
     return buildResponse(200, body);
   }, (error) => {
-    console.error('Do your custom error handling here. I am just gonna log it: ', error);
+    console.error('Update to DynamoDb Error: ', error);
   })
 }
 
 async function deleteProduct(productId) {
   const params = {
-    TableName: dynamodbTableName,
+    TableName: dynamoDbTableName,
     Key: {
       'productId': productId
     },
     ReturnValues: 'ALL_OLD'
   }
-  return await dynamodb.delete(params).promise().then((response) => {
+  return await dynamoDb.delete(params).promise().then((response) => {
     const body = {
       Operation: 'DELETE',
       Message: 'SUCCESS',
@@ -133,7 +133,7 @@ async function deleteProduct(productId) {
     }
     return buildResponse(200, body);
   }, (error) => {
-    console.error('Do your custom error handling here. I am just gonna log it: ', error);
+    console.error('Delete DynamoDb Error: ', error);
   })
 }
 

@@ -47,7 +47,7 @@ async function getProduct(productId) {
   return await dynamoDb.get(params).promise().then((response) => {
     return buildResponse(200, response.Item);
   }, (error) => {
-    console.error('DynamoDb (GET) Error: ', error);
+    console.error('Get DynamoDb Error: ', error);
   });
 }
 
@@ -72,7 +72,7 @@ async function scanDynamoDbRecords(scanParams, itemArray) {
     }
     return itemArray;
   } catch(error) {
-    console.error('Scan DynamoDb Records Error: ', error);
+    console.error('Scan DynamoDb Record Error: ', error);
   }
 }
 
@@ -89,7 +89,7 @@ async function saveProduct(requestBody) {
     }
     return buildResponse(200, body);
   }, (error) => {
-    console.error('Save to DynamoDb Error: ', error);
+    console.error('Save DynamoDb Error: ', error);
   })
 }
 
@@ -113,7 +113,7 @@ async function updateProduct(productId, updateKey, updateValue) {
     }
     return buildResponse(200, body);
   }, (error) => {
-    console.error('Update to DynamoDb Error: ', error);
+    console.error('Update DynamoDb Error: ', error);
   })
 }
 

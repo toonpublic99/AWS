@@ -1,0 +1,33 @@
+#ami-0b89f7b3f054b957e
+#linuxKeyPair
+Parameters:
+  MyKeyPairName:
+    Type: String
+  MyImageId:
+    Type: String
+Resources:
+    MyEC2Instance:
+      Type: AWS::EC2::Instance
+      Properties:
+        UserData:
+          Fn::Base64: |
+            #!/bin/bash
+            yum install httpd -y
+            systemctl enable httpd
+            instanceId=$(curl http://169.254.169.254/latest/meta-data/instance-id)
+            echo "This is $instanceId" > /var/www/html/index.html
+            systemctl start httpd
+        KeyName: !Ref MyKeyPairName
+        InstanceType: t2.micro
+        SecurityGroups:
+          - !Ref MySecurityGroup
+        ImageId: !Ref MyImageId
+    MySecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: Allowing SSH from everywhere
+        SecurityGroupIngress:
+          IpProtocol: tcp
+          ToPort: '22'
+          FromPort: '22'
+          CidrIp: 0.0.0.0/0
